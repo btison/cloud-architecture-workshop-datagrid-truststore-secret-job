@@ -52,6 +52,12 @@ public class KubernetesRunner {
 
         String keystoreAlias = System.getenv().getOrDefault("KEYSTORE_ALIAS", "infinispan");
 
+        String saslMechanism = System.getenv().getOrDefault("SASL_MECHANISM", "SCRAM-SHA-512");
+
+        String username = System.getenv().getOrDefault("DATAGRID_USERNAME", "developer");
+
+        String password = System.getenv().getOrDefault("DATAGRID_PASSWORD", "password");
+
         String clientSecretName = System.getenv().getOrDefault("DATAGRID_CLIENT_SECRET", "client-infinispan");
 
         String clientPropertiesName = System.getenv().getOrDefault("DATAGRID_CLIENT_PROPERTIES", "infinispan.properties");
@@ -114,8 +120,16 @@ public class KubernetesRunner {
         }
 
         // create secret
-        String clientProperties = "infinispan.client.hotrod.trust_store_file_name = classpath:" + keystoreName + "\n" +
-                "infinispan.client.hotrod.trust_store_password = " + keystorePassword;
+        String clientProperties = """
+                infinispan.client.hotrod.use_ssl = true
+                infinispan.client.hotrod.trust_store_file_name = classpath:%s
+                infinispan.client.hotrod.trust_store_password = %s
+                infinispan.client.hotrod.trust_store_type = %s
+                
+                infinispan.client.hotrod.sasl_mechanism = %s
+                infinispan.client.hotrod.auth_username = %s
+                infinispan.client.hotrod.auth_password = %s                
+                """.formatted(keystoreName, keystorePassword, keystoreType, saslMechanism, username, password);
 
         Secret clientSecret = new SecretBuilder().withNewMetadata().withName(clientSecretName).endMetadata().withType("Opaque")
                 .addToData(keystoreName, Base64.getEncoder().encodeToString(ksBytes))
