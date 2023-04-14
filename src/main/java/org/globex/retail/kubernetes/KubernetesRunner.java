@@ -44,13 +44,13 @@ public class KubernetesRunner {
 
         String certificateName = System.getenv().getOrDefault("DATAGRID_CERTIFICATE_NAME", "tls.crt");
 
-        String keystoreType = System.getenv().getOrDefault("KEYSTORE_TYPE", "JKS");
+        String truststoreType = System.getenv().getOrDefault("TRUSTSTORE_TYPE", "JKS");
 
-        String keystorePassword = System.getenv().getOrDefault("KEYSTORE_PASSWD", "password");
+        String truststorePassword = System.getenv().getOrDefault("TRUSTSTORE_PASSWD", "password");
 
-        String keystoreName = System.getenv().getOrDefault("KEYSTORE_NAME", "client-infinispan.ts");
+        String truststoreName = System.getenv().getOrDefault("TRUSTSTORE_NAME", "client-infinispan.ts");
 
-        String keystoreAlias = System.getenv().getOrDefault("KEYSTORE_ALIAS", "infinispan");
+        String truststoreAlias = System.getenv().getOrDefault("TRUSTSTORE_ALIAS", "infinispan");
 
         String saslMechanism = System.getenv().getOrDefault("SASL_MECHANISM", "SCRAM-SHA-512");
 
@@ -94,20 +94,16 @@ public class KubernetesRunner {
         // build keystore
         byte[] ksBytes;
         try {
-            KeyStore ks = KeyStore.getInstance(keystoreType);
-            char[] pwdArray = keystorePassword.toCharArray();
+            KeyStore ks = KeyStore.getInstance(truststoreType);
+            char[] pwdArray = truststorePassword.toCharArray();
             ks.load(null, pwdArray);
 
             InputStream is = new ByteArrayInputStream(certDecoded);
             Certificate cert = CertificateFactory.getInstance("X509").generateCertificate(is);
 
-            ks.setCertificateEntry(keystoreAlias, cert);
+            ks.setCertificateEntry(truststoreAlias, cert);
 
-            // Save the keyStore
-            FileOutputStream fos = new FileOutputStream("/tmp/" + keystoreName);
-            ks.store(fos, pwdArray);
-            fos.close();
-
+            // Save the keyStore a a byte array
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             ks.store(bos, pwdArray);
             bos.close();
@@ -129,10 +125,10 @@ public class KubernetesRunner {
                 infinispan.client.hotrod.sasl_mechanism = %s
                 infinispan.client.hotrod.auth_username = %s
                 infinispan.client.hotrod.auth_password = %s                
-                """.formatted(keystoreName, keystorePassword, keystoreType, saslMechanism, username, password);
+                """.formatted(truststoreName, truststorePassword, truststoreType, saslMechanism, username, password);
 
         Secret clientSecret = new SecretBuilder().withNewMetadata().withName(clientSecretName).endMetadata().withType("Opaque")
-                .addToData(keystoreName, Base64.getEncoder().encodeToString(ksBytes))
+                .addToData(truststoreName, Base64.getEncoder().encodeToString(ksBytes))
                 .addToData(clientPropertiesName, Base64.getEncoder().encodeToString(clientProperties.getBytes()))
                 .build();
 
